@@ -21,6 +21,12 @@ const nextConfig = {
       },
     ];
   },
+  // Explicitly set the output directory
+  distDir: '.next',
+  // Set the base path
+  basePath: '',
+  // Disable trailing slashes
+  trailingSlash: false,
 };
 
 module.exports = nextConfig; 
