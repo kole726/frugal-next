@@ -16,6 +16,7 @@ interface MedicationApiResponse {
   strengths: MedicationStrength[];
   quantities: MedicationQuantity[];
   alternateDrugs: AlternateDrug[];
+  pharmacies?: PharmacyPrice[]; // Add this if missing
   // other properties omitted for brevity
 }
 
@@ -49,6 +50,15 @@ interface MedicationQuantity {
   selected: boolean;
 }
 
+interface PharmacyPrice {
+  pharmacyName: string;
+  pharmacyAddress: string;
+  distance?: number;
+  price?: number;
+  regularPrice?: number;
+  savings?: number;
+}
+
 interface DrugPageClientProps {
   drugName: string;
 }
@@ -71,6 +81,42 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
   const [availableForms, setAvailableForms] = useState<MedicationForm[]>([]);
   const [availableStrengths, setAvailableStrengths] = useState<MedicationStrength[]>([]);
   const [availableQuantities, setAvailableQuantities] = useState<MedicationQuantity[]>([]);
+
+  // Mock pharmacy prices for display
+  const [pharmacyPrices, setPharmacyPrices] = useState<PharmacyPrice[]>([
+    {
+      pharmacyName: 'Walgreens',
+      pharmacyAddress: '123 Main St, Anytown, USA',
+      distance: 1.2,
+      price: 12.99,
+      regularPrice: 24.99,
+      savings: 12.00
+    },
+    {
+      pharmacyName: 'CVS Pharmacy',
+      pharmacyAddress: '456 Oak Ave, Anytown, USA',
+      distance: 2.5,
+      price: 13.49,
+      regularPrice: 22.99,
+      savings: 9.50
+    },
+    {
+      pharmacyName: 'Walmart Pharmacy',
+      pharmacyAddress: '789 Elm St, Anytown, USA',
+      distance: 3.7,
+      price: 9.99,
+      regularPrice: 19.99,
+      savings: 10.00
+    },
+    {
+      pharmacyName: 'Rite Aid',
+      pharmacyAddress: '101 Pine Blvd, Anytown, USA',
+      distance: 4.3,
+      price: 14.99,
+      regularPrice: 28.99,
+      savings: 14.00
+    }
+  ]);
 
   // Decode the drug name from the URL
   const decodedDrugName = decodeURIComponent(drugName);
@@ -348,6 +394,35 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
     return `${variant.medName} ${brandGeneric}`;
   };
 
+  // Formatted drug name for display
+  const formatDrugName = (name: string) => {
+    return name.split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
+  // Extract the basic generic name (e.g., "acetaminophen" from "TYLENOL")
+  const getGenericName = (variant: string): string => {
+    const genericNames: {[key: string]: string} = {
+      'TYLENOL': 'acetaminophen',
+      'ADVIL': 'ibuprofen',
+      'MOTRIN': 'ibuprofen',
+      'ALEVE': 'naproxen sodium',
+      'BAYER': 'aspirin',
+      'CLARITIN': 'loratadine',
+      'ZYRTEC': 'cetirizine',
+      'BENADRYL': 'diphenhydramine',
+    };
+    
+    return genericNames[variant.toUpperCase()] || '';
+  };
+
+  // New function to calculate price discount percentage
+  const calculateDiscount = (originalPrice: number, discountedPrice: number): number => {
+    if (!originalPrice || !discountedPrice) return 0;
+    return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -406,169 +481,291 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          {medicationData.drug?.medName}
-        </h1>
-        <p className="text-xl text-gray-600">
-          {medicationData.drug?.bgFlag === 'G' ? 'Generic Medication' : 'Brand Medication'}
-        </p>
-      </div>
-
-      {/* Medication Selection Dropdowns */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-6">Select Medication Options</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Variant Dropdown */}
-          <div className="flex flex-col">
-            <label htmlFor="variant-select" className="text-sm font-medium text-gray-700 mb-2">
-              Brand/Generic
-            </label>
-            <select
-              id="variant-select"
-              value={selectedVariant}
-              onChange={handleVariantChange}
-              className="border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-            >
-              {medicationData.alternateDrugs?.map((variant, index) => (
-                <option key={index} value={variant.medName}>
-                  {getVariantLabel(variant)}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          {/* Form Dropdown */}
-          <div className="flex flex-col">
-            <label htmlFor="form-select" className="text-sm font-medium text-gray-700 mb-2">
-              Form
-            </label>
-            <select
-              id="form-select"
-              value={selectedForm?.form || ''}
-              onChange={handleFormChange}
-              className="border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-              disabled={!availableForms.length}
-            >
-              {availableForms.map((form, index) => (
-                <option key={index} value={form.form}>
-                  {form.form}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          {/* Strength/Dosage Dropdown */}
-          <div className="flex flex-col">
-            <label htmlFor="strength-select" className="text-sm font-medium text-gray-700 mb-2">
-              Dosage
-            </label>
-            <select
-              id="strength-select"
-              value={selectedStrength?.strength || ''}
-              onChange={handleStrengthChange}
-              className="border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-              disabled={!availableStrengths.length}
-            >
-              {availableStrengths.map((strength, index) => (
-                <option key={index} value={strength.strength}>
-                  {strength.strength}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          {/* Quantity Dropdown */}
-          <div className="flex flex-col">
-            <label htmlFor="quantity-select" className="text-sm font-medium text-gray-700 mb-2">
-              Quantity
-            </label>
-            <select
-              id="quantity-select"
-              value={selectedQuantity ? `${selectedQuantity.quantity} ${selectedQuantity.uom}` : ''}
-              onChange={handleQuantityChange}
-              className="border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-              disabled={!availableQuantities.length}
-            >
-              {availableQuantities.map((qty, index) => (
-                <option key={index} value={`${qty.quantity} ${qty.uom}`}>
-                  {qty.quantity} {qty.uom}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="max-w-7xl mx-auto px-6 py-8">
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-green-500 rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-600">Loading medication information...</p>
         </div>
-        
-        {/* Selected Options Summary */}
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-medium text-gray-800 mb-3">Selected Options</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <span className="font-medium text-gray-700">Variant:</span>{' '}
-              {selectedVariant || 'Not selected'}
-            </div>
-            <div>
-              <span className="font-medium text-gray-700">Form:</span>{' '}
-              {selectedForm?.form || 'Not selected'}
-            </div>
-            <div>
-              <span className="font-medium text-gray-700">Dosage:</span>{' '}
-              {selectedStrength?.strength || 'Not selected'}
-            </div>
-            <div>
-              <span className="font-medium text-gray-700">Quantity:</span>{' '}
-              {selectedQuantity ? `${selectedQuantity.quantity} ${selectedQuantity.uom}` : 'Not selected'}
-            </div>
-          </div>
-        </div>
-        
-        {/* Action Button */}
-        <div className="mt-6 flex justify-end">
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="text-xl font-bold text-red-700 mb-2">Error Loading Data</h2>
+          <p className="text-red-600">{error}</p>
           <button 
-            className="px-6 py-3 bg-pink-600 text-white font-medium rounded-md hover:bg-pink-700 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!selectedQuantity}
-            onClick={() => {
-              // In a real implementation, this would navigate to a price comparison page or show prices
-              alert('Finding best prices for your selected medication...');
-            }}
+            onClick={() => router.push('/')} 
+            className="mt-4 inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-150"
           >
-            Find Best Prices
+            Return to Homepage
           </button>
         </div>
-      </div>
+      ) : medicationData ? (
+        <div>
+          {/* Breadcrumb navigation */}
+          <div className="flex items-center text-sm mb-6 text-gray-500">
+            <a href="/" className="hover:text-green-600 transition-colors">Home</a>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mx-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span className="text-gray-700 font-medium">
+              {formatDrugName(decodedDrugName)}
+            </span>
+          </div>
 
-      {/* Medication Details */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">Medication Details</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <span className="font-medium text-gray-700">Medication:</span> {medicationData.drug?.medName}
-          </div>
-          <div>
-            <span className="font-medium text-gray-700">Type:</span> {medicationData.drug?.bgFlag === 'G' ? 'Generic' : 'Brand'}
-          </div>
-          {selectedForm && (
-            <div>
-              <span className="font-medium text-gray-700">Form:</span> {selectedForm.form}
+          {/* Main content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left column - Drug information */}
+            <div className="lg:col-span-1">
+              <div className="bg-white p-6 rounded-xl shadow-md">
+                <div className="flex items-start pb-4 border-b border-gray-100">
+                  <div className="flex-shrink-0 bg-green-100 rounded-lg p-3 mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-800">
+                      {formatDrugName(selectedVariant || decodedDrugName)}
+                    </h1>
+                    {getGenericName(selectedVariant || decodedDrugName) && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Generic Name: {getGenericName(selectedVariant || decodedDrugName)}
+                      </p>
+                    )}
+                    {selectedForm && selectedStrength && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {selectedForm.form}
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          {selectedStrength.strength}
+                        </span>
+                        {selectedQuantity && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {selectedQuantity.quantity} {selectedQuantity.uom.toLowerCase()}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Drug options selectors */}
+                <div className="mt-6 space-y-4">
+                  {/* Medication variant */}
+                  {medicationData.alternateDrugs && medicationData.alternateDrugs.length > 1 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Medication Type
+                      </label>
+                      <select
+                        value={selectedVariant}
+                        onChange={(e) => setSelectedVariant(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      >
+                        {medicationData.alternateDrugs.map((variant, idx) => (
+                          <option key={idx} value={variant.medName}>
+                            {variant.medName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Form */}
+                  {availableForms.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Form
+                      </label>
+                      <select
+                        value={selectedForm?.form || ''}
+                        onChange={(e) => {
+                          const form = availableForms.find(f => f.form === e.target.value);
+                          if (form) {
+                            setSelectedForm(form);
+                            // Also update strengths and quantities
+                            // This would call a function like updateStrengthsForForm(medicationData, form);
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      >
+                        {availableForms.map((form, idx) => (
+                          <option key={idx} value={form.form}>
+                            {form.form}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Strength */}
+                  {availableStrengths.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Strength
+                      </label>
+                      <select
+                        value={selectedStrength?.strength || ''}
+                        onChange={(e) => {
+                          const strength = availableStrengths.find(s => s.strength === e.target.value);
+                          if (strength) {
+                            setSelectedStrength(strength);
+                            // Also update quantities
+                            // This would call a function like updateQuantitiesForFormAndStrength(medicationData, selectedForm, strength);
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      >
+                        {availableStrengths.map((strength, idx) => (
+                          <option key={idx} value={strength.strength}>
+                            {strength.strength}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Quantity */}
+                  {availableQuantities.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Quantity
+                      </label>
+                      <select
+                        value={selectedQuantity ? selectedQuantity.quantity.toString() : ''}
+                        onChange={(e) => {
+                          const qty = availableQuantities.find(q => q.quantity.toString() === e.target.value);
+                          if (qty) {
+                            setSelectedQuantity(qty);
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      >
+                        {availableQuantities.map((qty, idx) => (
+                          <option key={idx} value={qty.quantity.toString()}>
+                            {qty.quantity} {qty.uom}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Information about the drug */}
+                <div className="mt-6 bg-blue-50 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">About this medication</h3>
+                      <p className="mt-1 text-sm text-blue-700">
+                        Prices may vary based on location, pharmacy, and insurance coverage. 
+                        Always consult with healthcare professionals before starting any medication.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-          {selectedStrength && (
-            <div>
-              <span className="font-medium text-gray-700">Strength:</span> {selectedStrength.strength}
+
+            {/* Right column - Prices */}
+            <div className="lg:col-span-2">
+              <div className="bg-white p-6 rounded-xl shadow-md">
+                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Lowest Prices Near You
+                </h2>
+
+                {/* Pharmacy prices */}
+                <div className="space-y-4">
+                  {pharmacyPrices.map((pharmacy, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200">
+                      <div className="grid grid-cols-1 md:grid-cols-5 items-center gap-4">
+                        {/* Pharmacy info */}
+                        <div className="p-4 md:col-span-2">
+                          <div className="flex items-start">
+                            <div className="bg-gray-100 rounded-lg p-2 mr-3">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-800">{pharmacy.pharmacyName}</h3>
+                              <p className="text-sm text-gray-500">{pharmacy.pharmacyAddress}</p>
+                              {pharmacy.distance !== undefined && (
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {pharmacy.distance.toFixed(1)} miles away
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Price */}
+                        <div className="p-4 border-t md:border-t-0 md:border-l border-gray-200 md:col-span-2">
+                          <div className="flex items-baseline">
+                            <span className="text-2xl font-bold text-gray-800">${pharmacy.price?.toFixed(2)}</span>
+                            {pharmacy.regularPrice && (
+                              <span className="ml-2 text-sm line-through text-gray-500">
+                                ${pharmacy.regularPrice.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                          {pharmacy.savings && pharmacy.regularPrice && (
+                            <div className="mt-1 flex items-center text-sm text-green-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                              </svg>
+                              Save ${pharmacy.savings.toFixed(2)} 
+                              ({calculateDiscount(pharmacy.regularPrice, pharmacy.price || 0)}% off)
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Get coupon button */}
+                        <div className="p-4 bg-gray-50 md:rounded-none md:col-span-1 text-center">
+                          <button className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-150 shadow-sm">
+                            Get Coupon
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Information callout */}
+                <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-yellow-800">How to use your coupon</h3>
+                      <div className="mt-2 text-sm text-yellow-700">
+                        <ol className="list-decimal pl-5 space-y-1">
+                          <li>Click the "Get Coupon" button for your preferred pharmacy</li>
+                          <li>Present the coupon at the pharmacy when picking up your prescription</li>
+                          <li>Pay the discounted price shown on the coupon</li>
+                        </ol>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-          {selectedQuantity && (
-            <div>
-              <span className="font-medium text-gray-700">Quantity:</span> {selectedQuantity.quantity} {selectedQuantity.uom}
-            </div>
-          )}
-          <div>
-            <span className="font-medium text-gray-700">GSN:</span> {selectedForm?.gsn || medicationData.drug?.gsn || 'N/A'}
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 } 
