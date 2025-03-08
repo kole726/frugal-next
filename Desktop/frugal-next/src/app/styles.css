@@ -1,0 +1,12 @@
+html {
+  @apply text-gray-800;
+}
+
+body {
+  @apply bg-white text-gray-800 font-sans antialiased;
+}
+
+.antialiased {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+} 
