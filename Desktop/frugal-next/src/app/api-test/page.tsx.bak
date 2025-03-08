@@ -1,0 +1,972 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+
+// Sample data for testing
+const SAMPLE_DATA = {
+  search: {
+    results: [
+      {
+        drugId: "12345",
+        drugName: "Lipitor",
+        genericName: "Atorvastatin",
+        brandName: "Lipitor",
+        dosageForm: "Tablet",
+        strength: "10 mg",
+        packageSize: "30",
+        ndc: "0071-0155-23",
+        gsn: "62733",
+        isGeneric: false
+      },
+      {
+        drugId: "67890",
+        drugName: "Atorvastatin",
+        genericName: "Atorvastatin",
+        brandName: "Lipitor",
+        dosageForm: "Tablet",
+        strength: "20 mg",
+        packageSize: "30",
+        ndc: "0071-0156-23",
+        gsn: "62734",
+        isGeneric: true
+      }
+    ]
+  },
+  details: {
+    drugId: "12345",
+    drugName: "Lipitor",
+    genericName: "Atorvastatin",
+    brandName: "Lipitor",
+    dosageForm: "Tablet",
+    strength: "10 mg",
+    packageSize: "30",
+    ndc: "0071-0155-23",
+    gsn: "62733",
+    isGeneric: false
+  },
+  pricing: {
+    medication: {
+      drugId: "12345",
+      drugName: "Lipitor",
+      genericName: "Atorvastatin",
+      brandName: "Lipitor",
+      dosageForm: "Tablet",
+      strength: "10 mg",
+      packageSize: "30",
+      ndc: "0071-0155-23",
+      gsn: "62733",
+      isGeneric: false
+    },
+    pricing: [
+      {
+        pharmacy: {
+          pharmacyId: "1",
+          name: "CVS Pharmacy",
+          address: "123 Main St",
+          city: "Beverly Hills",
+          state: "CA",
+          zip: "90210",
+          phone: "(555) 123-4567",
+          latitude: 34.0736,
+          longitude: -118.4004,
+          distance: 0.5,
+          chainCode: "CVS",
+          open24H: false
+        },
+        price: 150.99,
+        discountPrice: 75.99,
+        savings: 75.00,
+        savingsPercentage: 49.67
+      },
+      {
+        pharmacy: {
+          pharmacyId: "2",
+          name: "Walgreens",
+          address: "456 Oak St",
+          city: "Beverly Hills",
+          state: "CA",
+          zip: "90210",
+          phone: "(555) 987-6543",
+          latitude: 34.0785,
+          longitude: -118.4098,
+          distance: 1.2,
+          chainCode: "WAG",
+          open24H: true
+        },
+        price: 145.99,
+        discountPrice: 79.99,
+        savings: 66.00,
+        savingsPercentage: 45.21
+      }
+    ]
+  },
+  pharmacies: [
+    {
+      pharmacyId: "1",
+      name: "CVS Pharmacy",
+      address: "123 Main St",
+      city: "Beverly Hills",
+      state: "CA",
+      zip: "90210",
+      phone: "(555) 123-4567",
+      latitude: 34.0736,
+      longitude: -118.4004,
+      distance: 0.5,
+      chainCode: "CVS",
+      open24H: false
+    },
+    {
+      pharmacyId: "2",
+      name: "Walgreens",
+      address: "456 Oak St",
+      city: "Beverly Hills",
+      state: "CA",
+      zip: "90210",
+      phone: "(555) 987-6543",
+      latitude: 34.0785,
+      longitude: -118.4098,
+      distance: 1.2,
+      chainCode: "WAG",
+      open24H: true
+    },
+    {
+      pharmacyId: "3",
+      name: "Rite Aid",
+      address: "789 Pine St",
+      city: "Beverly Hills",
+      state: "CA",
+      zip: "90210",
+      phone: "(555) 456-7890",
+      latitude: 34.0699,
+      longitude: -118.3967,
+      distance: 1.8,
+      chainCode: "RAD",
+      open24H: false
+    }
+  ]
+};
+
+export default function ApiTestPage() {
+  const [activeTab, setActiveTab] = useState('search');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [drugName, setDrugName] = useState('');
+  const [gsn, setGsn] = useState('');
+  const [ndc, setNdc] = useState('');
+  const [zipCode, setZipCode] = useState('90210');
+  const [quantity, setQuantity] = useState('30');
+  const [results, setResults] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Add global error handler
+  useEffect(() => {
+    const handleGlobalError = (event: ErrorEvent) => {
+      console.error('Global error caught:', event.error);
+      setError(`An unexpected error occurred: ${event.message}`);
+    };
+
+    window.addEventListener('error', handleGlobalError);
+    
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+    };
+  }, []);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResults(null); // Clear previous results
+    
+    if (!searchQuery.trim()) {
+      setError('Please enter a search query');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      console.log(`Searching for: ${searchQuery}`);
+      const response = await fetch(`/api/medications/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        const errorMessage = errorData.error || `Search failed: ${response.status} ${response.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('Search results:', data);
+      } catch (jsonError) {
+        console.error('Error parsing response:', jsonError);
+        throw new Error('Invalid response format');
+      }
+      
+      if (!data.results || data.results.length === 0) {
+        setError('No medications found matching your search. Please try a different query.');
+      } else {
+        setResults(data);
+      }
+    } catch (error) {
+      console.error('Error searching medications:', error);
+      setError(error instanceof Error ? error.message : 'Failed to search medications. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDrugDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResults(null); // Clear previous results
+    
+    if (!drugName.trim()) {
+      setError('Please enter a drug name');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      console.log(`Getting details for drug: ${drugName}`);
+      const response = await fetch(`/api/medications/${encodeURIComponent(drugName.trim())}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        const errorMessage = errorData.error || `Drug details lookup failed: ${response.status} ${response.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('Drug details results:', data);
+      } catch (jsonError) {
+        console.error('Error parsing response:', jsonError);
+        throw new Error('Invalid response format');
+      }
+      
+      if (!data || Object.keys(data).length === 0) {
+        setError('No drug details found for this name. Please try another drug name.');
+      } else {
+        setResults(data);
+      }
+    } catch (error) {
+      console.error('Error getting drug details:', error);
+      setError(error instanceof Error ? error.message : 'Failed to get drug details. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePricing = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResults(null); // Clear previous results
+    
+    if (!drugName.trim()) {
+      setError('Please enter a drug name');
+      setLoading(false);
+      return;
+    }
+    
+    if (!zipCode.trim()) {
+      setError('Please enter a ZIP code');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      console.log(`Getting pricing for drug: ${drugName} in ZIP: ${zipCode}`);
+      const response = await fetch(`/api/medications/${encodeURIComponent(drugName.trim())}/pricing?zipCode=${zipCode.trim()}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        const errorMessage = errorData.error || `Pricing lookup failed: ${response.status} ${response.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('Pricing results:', data);
+      } catch (jsonError) {
+        console.error('Error parsing response:', jsonError);
+        throw new Error('Invalid response format');
+      }
+      
+      if (!data || !data.pricing || data.pricing.length === 0) {
+        setError('No pricing information found for this drug and ZIP code. Please try different values.');
+      } else {
+        setResults(data);
+      }
+    } catch (error) {
+      console.error('Error getting pricing:', error);
+      setError(error instanceof Error ? error.message : 'Failed to get pricing. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGsnPricing = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResults(null); // Clear previous results
+    
+    if (!gsn.trim()) {
+      setError('Please enter a GSN');
+      setLoading(false);
+      return;
+    }
+    
+    if (!zipCode.trim()) {
+      setError('Please enter a ZIP code');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      console.log(`Getting pricing for GSN: ${gsn} in ZIP: ${zipCode} with quantity: ${quantity}`);
+      const response = await fetch(`/api/medications/pricing/gsn?gsn=${gsn.trim()}&zipCode=${zipCode.trim()}&quantity=${quantity.trim() || '30'}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        const errorMessage = errorData.error || `GSN pricing lookup failed: ${response.status} ${response.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('GSN pricing results:', data);
+      } catch (jsonError) {
+        console.error('Error parsing response:', jsonError);
+        throw new Error('Invalid response format');
+      }
+      
+      if (!data || !data.pricing || data.pricing.length === 0) {
+        setError('No pricing information found for this GSN and ZIP code. Please try different values.');
+      } else {
+        setResults(data);
+      }
+    } catch (error) {
+      console.error('Error getting GSN pricing:', error);
+      setError(error instanceof Error ? error.message : 'Failed to get GSN pricing. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNdcPricing = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResults(null); // Clear previous results
+    
+    if (!ndc.trim()) {
+      setError('Please enter an NDC');
+      setLoading(false);
+      return;
+    }
+    
+    if (!zipCode.trim()) {
+      setError('Please enter a ZIP code');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      console.log(`Getting pricing for NDC: ${ndc} in ZIP: ${zipCode} with quantity: ${quantity}`);
+      const response = await fetch(`/api/medications/pricing/ndc?ndc=${ndc.trim()}&zipCode=${zipCode.trim()}&quantity=${quantity.trim() || '30'}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        const errorMessage = errorData.error || `NDC pricing lookup failed: ${response.status} ${response.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('NDC pricing results:', data);
+      } catch (jsonError) {
+        console.error('Error parsing response:', jsonError);
+        throw new Error('Invalid response format');
+      }
+      
+      if (!data || !data.pricing || data.pricing.length === 0) {
+        setError('No pricing information found for this NDC and ZIP code. Please try different values.');
+      } else {
+        setResults(data);
+      }
+    } catch (error) {
+      console.error('Error getting NDC pricing:', error);
+      setError(error instanceof Error ? error.message : 'Failed to get NDC pricing. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePharmacies = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResults(null); // Clear previous results
+    
+    if (!zipCode.trim()) {
+      setError('Please enter a ZIP code');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      console.log(`Getting pharmacies in ZIP: ${zipCode}`);
+      const response = await fetch(`/api/pharmacies?zipCode=${zipCode.trim()}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        const errorMessage = errorData.error || `Pharmacy lookup failed: ${response.status} ${response.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('Pharmacy results:', data);
+      } catch (jsonError) {
+        console.error('Error parsing response:', jsonError);
+        throw new Error('Invalid response format');
+      }
+      
+      if (!data || data.length === 0) {
+        setError('No pharmacies found for this ZIP code. Please try a different ZIP code.');
+      } else {
+        setResults(data);
+      }
+    } catch (error) {
+      console.error('Error getting pharmacies:', error);
+      setError(error instanceof Error ? error.message : 'Failed to get pharmacies. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSampleData = () => {
+    setLoading(true);
+    setError(null);
+    
+    setTimeout(() => {
+      switch (activeTab) {
+        case 'search':
+          setResults(SAMPLE_DATA.search);
+          break;
+        case 'details':
+          setResults(SAMPLE_DATA.details);
+          break;
+        case 'pricing':
+          setResults(SAMPLE_DATA.pricing);
+          break;
+        case 'gsn':
+          setResults(SAMPLE_DATA.pricing);
+          break;
+        case 'ndc':
+          setResults(SAMPLE_DATA.pricing);
+          break;
+        case 'pharmacies':
+          setResults(SAMPLE_DATA.pharmacies);
+          break;
+        default:
+          setError('Unknown tab');
+      }
+      setLoading(false);
+    }, 500);
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6">
+        &larr; Back to Home
+      </Link>
+      
+      <h1 className="text-3xl font-bold mb-6">API Testing</h1>
+      
+      {/* Error display */}
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+            <div className="ml-auto pl-3">
+              <div className="-mx-1.5 -my-1.5">
+                <button
+                  onClick={() => setError(null)}
+                  className="inline-flex rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-600"
+                >
+                  <span className="sr-only">Dismiss</span>
+                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Loading indicator */}
+      {loading && (
+        <div className="flex justify-center items-center mb-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-700">Loading...</span>
+        </div>
+      )}
+      
+      <div className="mb-8">
+        <div className="flex border-b border-gray-200">
+          <button
+            className={`py-2 px-4 font-medium ${activeTab === 'search' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('search')}
+          >
+            Search
+          </button>
+          <button
+            className={`py-2 px-4 font-medium ${activeTab === 'details' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('details')}
+          >
+            Drug Details
+          </button>
+          <button
+            className={`py-2 px-4 font-medium ${activeTab === 'pricing' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('pricing')}
+          >
+            Pricing
+          </button>
+          <button
+            className={`py-2 px-4 font-medium ${activeTab === 'gsn' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('gsn')}
+          >
+            GSN Pricing
+          </button>
+          <button
+            className={`py-2 px-4 font-medium ${activeTab === 'ndc' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('ndc')}
+          >
+            NDC Pricing
+          </button>
+          <button
+            className={`py-2 px-4 font-medium ${activeTab === 'pharmacies' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('pharmacies')}
+          >
+            Pharmacies
+          </button>
+        </div>
+      </div>
+      
+      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">API Testing</h2>
+          <button
+            type="button"
+            onClick={loadSampleData}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors text-sm"
+          >
+            Load Sample Data
+          </button>
+        </div>
+        
+        {activeTab === 'search' && (
+          <form onSubmit={handleSearch}>
+            <div className="mb-4">
+              <label htmlFor="searchQuery" className="block text-gray-700 font-medium mb-2">
+                Search Query
+              </label>
+              <input
+                type="text"
+                id="searchQuery"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter drug name (e.g., lipitor)"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              disabled={loading}
+            >
+              {loading ? 'Searching...' : 'Search'}
+            </button>
+          </form>
+        )}
+        
+        {activeTab === 'details' && (
+          <form onSubmit={handleDrugDetails}>
+            <div className="mb-4">
+              <label htmlFor="drugName" className="block text-gray-700 font-medium mb-2">
+                Drug Name
+              </label>
+              <input
+                type="text"
+                id="drugName"
+                value={drugName}
+                onChange={(e) => setDrugName(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter drug name (e.g., lipitor)"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Get Details'}
+            </button>
+          </form>
+        )}
+        
+        {activeTab === 'pricing' && (
+          <form onSubmit={handlePricing}>
+            <div className="mb-4">
+              <label htmlFor="drugNamePricing" className="block text-gray-700 font-medium mb-2">
+                Drug Name
+              </label>
+              <input
+                type="text"
+                id="drugNamePricing"
+                value={drugName}
+                onChange={(e) => setDrugName(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter drug name (e.g., lipitor)"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="zipCode" className="block text-gray-700 font-medium mb-2">
+                ZIP Code
+              </label>
+              <input
+                type="text"
+                id="zipCode"
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter ZIP code (e.g., 90210)"
+                pattern="[0-9]{5}"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Get Pricing'}
+            </button>
+          </form>
+        )}
+        
+        {activeTab === 'gsn' && (
+          <form onSubmit={handleGsnPricing}>
+            <div className="mb-4">
+              <label htmlFor="gsn" className="block text-gray-700 font-medium mb-2">
+                GSN (Generic Sequence Number)
+              </label>
+              <input
+                type="text"
+                id="gsn"
+                value={gsn}
+                onChange={(e) => setGsn(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter GSN (e.g., 62733)"
+                pattern="[0-9]+"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="zipCodeGsn" className="block text-gray-700 font-medium mb-2">
+                ZIP Code
+              </label>
+              <input
+                type="text"
+                id="zipCodeGsn"
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter ZIP code (e.g., 90210)"
+                pattern="[0-9]{5}"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="quantityGsn" className="block text-gray-700 font-medium mb-2">
+                Quantity
+              </label>
+              <input
+                type="text"
+                id="quantityGsn"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter quantity (e.g., 30)"
+                pattern="[0-9]+"
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Get GSN Pricing'}
+            </button>
+          </form>
+        )}
+        
+        {activeTab === 'ndc' && (
+          <form onSubmit={handleNdcPricing}>
+            <div className="mb-4">
+              <label htmlFor="ndc" className="block text-gray-700 font-medium mb-2">
+                NDC (National Drug Code)
+              </label>
+              <input
+                type="text"
+                id="ndc"
+                value={ndc}
+                onChange={(e) => setNdc(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter NDC (e.g., 70954014010)"
+                pattern="[0-9]+"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="zipCodeNdc" className="block text-gray-700 font-medium mb-2">
+                ZIP Code
+              </label>
+              <input
+                type="text"
+                id="zipCodeNdc"
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter ZIP code (e.g., 90210)"
+                pattern="[0-9]{5}"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="quantityNdc" className="block text-gray-700 font-medium mb-2">
+                Quantity
+              </label>
+              <input
+                type="text"
+                id="quantityNdc"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter quantity (e.g., 30)"
+                pattern="[0-9]+"
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Get NDC Pricing'}
+            </button>
+          </form>
+        )}
+        
+        {activeTab === 'pharmacies' && (
+          <form onSubmit={handlePharmacies}>
+            <div className="mb-4">
+              <label htmlFor="zipCodePharmacies" className="block text-gray-700 font-medium mb-2">
+                ZIP Code
+              </label>
+              <input
+                type="text"
+                id="zipCodePharmacies"
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter ZIP code (e.g., 90210)"
+                pattern="[0-9]{5}"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Get Nearby Pharmacies'}
+            </button>
+          </form>
+        )}
+      </div>
+      
+      {results && (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Results</h2>
+          
+          {activeTab === 'search' && results.results && (
+            <div>
+              <div className="mb-4">
+                <h3 className="text-lg font-medium mb-2">Found {results.results.length} medications</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {results.results.map((med: any, index: number) => (
+                    <div key={index} className="border rounded-md p-4 bg-gray-50">
+                      <h4 className="font-bold">{med.drugName}</h4>
+                      {med.genericName && <p><span className="font-medium">Generic Name:</span> {med.genericName}</p>}
+                      {med.brandName && <p><span className="font-medium">Brand Name:</span> {med.brandName}</p>}
+                      {med.dosageForm && <p><span className="font-medium">Form:</span> {med.dosageForm}</p>}
+                      {med.strength && <p><span className="font-medium">Strength:</span> {med.strength}</p>}
+                      <p><span className="font-medium">Type:</span> {med.isGeneric ? 'Generic' : 'Brand'}</p>
+                      {med.gsn && <p><span className="font-medium">GSN:</span> {med.gsn}</p>}
+                      {med.ndc && <p><span className="font-medium">NDC:</span> {med.ndc}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {activeTab === 'details' && (
+            <div className="border rounded-md p-4 bg-gray-50">
+              <h3 className="text-lg font-medium mb-2">{results.drugName}</h3>
+              {results.genericName && <p><span className="font-medium">Generic Name:</span> {results.genericName}</p>}
+              {results.brandName && <p><span className="font-medium">Brand Name:</span> {results.brandName}</p>}
+              {results.dosageForm && <p><span className="font-medium">Form:</span> {results.dosageForm}</p>}
+              {results.strength && <p><span className="font-medium">Strength:</span> {results.strength}</p>}
+              <p><span className="font-medium">Type:</span> {results.isGeneric ? 'Generic' : 'Brand'}</p>
+              {results.gsn && <p><span className="font-medium">GSN:</span> {results.gsn}</p>}
+              {results.ndc && <p><span className="font-medium">NDC:</span> {results.ndc}</p>}
+            </div>
+          )}
+          
+          {activeTab === 'pricing' && results.pricing && (
+            <div>
+              <div className="mb-4">
+                <h3 className="text-lg font-medium mb-2">Pricing for {results.medication?.drugName}</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pharmacy</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount Price</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Savings</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {results.pricing.map((price: any, index: number) => (
+                        <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="font-medium text-gray-900">{price.pharmacy.name}</div>
+                            <div className="text-sm text-gray-500">{price.pharmacy.address}, {price.pharmacy.city}, {price.pharmacy.state} {price.pharmacy.zip}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${price.price.toFixed(2)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${price.discountPrice.toFixed(2)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                              ${price.savings.toFixed(2)} ({price.savingsPercentage.toFixed(0)}%)
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{price.pharmacy.distance.toFixed(1)} mi</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {(activeTab === 'gsn' || activeTab === 'ndc') && results.pricing && (
+            <div>
+              <div className="mb-4">
+                <h3 className="text-lg font-medium mb-2">Pricing for {results.medication?.drugName}</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pharmacy</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discount Price</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Savings</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {results.pricing.map((price: any, index: number) => (
+                        <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="font-medium text-gray-900">{price.pharmacy.name}</div>
+                            <div className="text-sm text-gray-500">{price.pharmacy.address}, {price.pharmacy.city}, {price.pharmacy.state} {price.pharmacy.zip}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${price.price.toFixed(2)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${price.discountPrice.toFixed(2)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                              ${price.savings.toFixed(2)} ({price.savingsPercentage.toFixed(0)}%)
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{price.pharmacy.distance.toFixed(1)} mi</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {activeTab === 'pharmacies' && (
+            <div>
+              <div className="mb-4">
+                <h3 className="text-lg font-medium mb-2">Nearby Pharmacies</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {results.map((pharmacy: any, index: number) => (
+                    <div key={index} className="border rounded-md p-4 bg-gray-50">
+                      <h4 className="font-bold">{pharmacy.name}</h4>
+                      <p>{pharmacy.address}</p>
+                      <p>{pharmacy.city}, {pharmacy.state} {pharmacy.zip}</p>
+                      <p><span className="font-medium">Phone:</span> {pharmacy.phone}</p>
+                      <p><span className="font-medium">Distance:</span> {pharmacy.distance.toFixed(1)} miles</p>
+                      {pharmacy.open24H && <p className="text-green-600 font-medium">Open 24 Hours</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="mt-4">
+            <h3 className="text-lg font-medium mb-2">Raw Response</h3>
+            <pre className="bg-gray-100 p-4 rounded-md overflow-auto max-h-96 text-xs">
+              {JSON.stringify(results, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+} 

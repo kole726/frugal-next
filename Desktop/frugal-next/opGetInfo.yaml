@@ -1,0 +1,167 @@
+api_version: "1.2"
+uri_scheme:
+host: "api.americaspharmacy.com"
+base_path: "/pricing/"
+tag: "Cash-card-pricing-rest-API"
+
+authentication:
+client_id: "YOUR_CLIENT_ID"
+client_secret: "YOUR_CLIENT_SECRET"
+token_url: "https://medimpacttest.okta.com/oauth2/ausshmhf86PBJGeKP296/v1/token"
+grant_type: "client_credentials"
+scopes:
+- "ccds.read"
+
+token_response:
+token_type: "Bearer"
+expires_in: 3600
+access_token: "eyJraWQiOiJkaDVhendqUVpmdUVucmR5RW53..."
+scope: "ccds.read"
+
+sequence_diagram:
+steps:
+- step: "Client API Authentication Request"
+action: "Send client_id and client_secret to token_url"
+response: "Bearer token received"
+- step: "opGetDrugInfo"
+action: "Client requests drug information with GSN"
+response: "Detailed drug information returned"
+- step: "opGetPharmacyDrugPricingbyGSN"
+action: "Client requests drug pricing using GSN"
+response: "Drug price from selected pharmacies returned"
+- step: "opGetPharmacyDrugPricingbyName"
+action: "Client requests drug pricing using drug name"
+response: "Drug price from selected pharmacies returned"
+- step: "opGetPharmacyDrugPricingbyNDC"
+action: "Client requests drug pricing using NDC"
+response: "Drug price from selected pharmacies returned"
+- step: "opFindDrugByName"
+action: "Client searches for drugs by name prefix"
+response: "Matching drug names returned"
+- step: "opGetGroupPharmacyDrugPricing"
+action: "Client requests group pharmacy pricing data"
+response: "Grouped pricing data returned"
+- step: "opGetPharmacyMultiDrugPricingbyGSN"
+action: "Client requests pricing for multiple drugs using GSN"
+response: "Multi-drug pricing data returned"
+- step: "opGetPharmacyMultiDrugPricingbyName"
+action: "Client requests pricing for multiple drugs using names"
+response: "Multi-drug pricing data returned"
+- step: "opGetPharmacyMultiDrugPricingbyNDC"
+action: "Client requests pricing for multiple drugs using NDCs"
+response: "Multi-drug pricing data returned"
+- step: "opGetGroupPharmacyMultiDrugPricing"
+action: "Client requests group pricing for multiple drugs"
+response: "Grouped multi-drug pricing data returned"
+
+operations:
+
+name: "opGetDrugInfo"
+description: "Provides detailed drug information, including usage and interactions."
+method: "GET"
+endpoint: "/v1/druginfo/{gsn}"
+
+name: "opGetPharmacyDrugPricingbyGSN"
+description: "Retrieves drug pricing using the six-digit Generic Sequence Number (GSN)."
+method: "POST"
+endpoint: "/v1/drugprices/byGSN"
+
+name: "opGetPharmacyDrugPricingbyName"
+description: "Retrieves drug pricing using the drug name."
+method: "POST"
+endpoint: "/v1/drugprices/byName"
+
+name: "opGetPharmacyDrugPricingbyNDC"
+description: "Retrieves drug pricing using the National Drug Code (NDC)."
+method: "POST"
+endpoint: "/v1/drugprices/byNdcCode"
+
+name: "opFindDrugByName"
+description: "Returns a list of drug suggestions based on the input name or prefix."
+method: "GET"
+endpoint: "/v1/drugs/{prefixText}"
+
+name: "opGetGroupPharmacyDrugPricing"
+description: "Retrieves pricing data grouped by pharmacy chains."
+method: "POST"
+endpoint: "/v1/drugprices/groupdrugprices"
+
+name: "opGetPharmacyMultiDrugPricingbyGSN"
+description: "Retrieves multi-drug pricing using GSN."
+method: "POST"
+endpoint: "/v1/multidrugprices/byGSN"
+
+name: "opGetPharmacyMultiDrugPricingbyName"
+description: "Retrieves multi-drug pricing using drug names."
+method: "POST"
+endpoint: "/v1/multidrugprices/byName"
+
+name: "opGetPharmacyMultiDrugPricingbyNDC"
+description: "Retrieves multi-drug pricing using NDC codes."
+method: "POST"
+endpoint: "/v1/multidrugprices/byNdcCode"
+
+name: "opGetGroupPharmacyMultiDrugPricing"
+description: "Retrieves multi-drug pricing grouped by pharmacy chains."
+method: "POST"
+endpoint: "/v1/multigroupdrugprices"
+
+definitions:
+drug:
+medName: "string"
+bgFlag: "string"
+gsn: "integer"
+ndcCode: "integer"
+quantity: "number"
+price: "number"
+
+pharmacy:
+name: "string"
+chainCode: "string"
+address: "string"
+city: "string"
+state: "string"
+zipCode: "string"
+latitude: "number"
+longitude: "number"
+phone: "string"
+open24H: "boolean"
+
+pricing:
+price: "number"
+awpPrice: "number"
+macPrice: "number"
+ucPrice: "number"
+priceBasis: "string"
+
+examples:
+opGetDrugInfo:
+request:
+method: "GET"
+url: "/v1/druginfo/12345"
+headers:
+Authorization: "Bearer YOUR_ACCESS_TOKEN"
+response:
+status: 200
+body:
+medName: "Ibuprofen"
+gsn: 12345
+description: "Used for pain relief."
+
+errors:
+
+code: 400
+message: "Bad Request - Invalid parameters"
+
+code: 401
+message: "Unauthorized - Invalid API token"
+
+code: 403
+message: "Forbidden - Insufficient permissions"
+
+code: 404
+message: "Not Found - No matching data"
+
+code: 500
+message: "Internal Server Error"
+
