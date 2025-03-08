@@ -503,9 +503,7 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
           {/* Breadcrumb navigation */}
           <div className="flex items-center text-sm mb-6 text-gray-500">
             <a href="/" className="hover:text-green-600 transition-colors">Home</a>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mx-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <span className="mx-2">&gt;</span>
             <span className="text-gray-700 font-medium">
               {formatDrugName(decodedDrugName)}
             </span>
@@ -516,37 +514,30 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
             {/* Left column - Drug information */}
             <div className="lg:col-span-1">
               <div className="bg-white p-6 rounded-xl shadow-md">
-                <div className="flex items-start pb-4 border-b border-gray-100">
-                  <div className="flex-shrink-0 bg-green-100 rounded-lg p-3 mr-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-800">
-                      {formatDrugName(selectedVariant || decodedDrugName)}
-                    </h1>
-                    {getGenericName(selectedVariant || decodedDrugName) && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Generic Name: {getGenericName(selectedVariant || decodedDrugName)}
-                      </p>
-                    )}
-                    {selectedForm && selectedStrength && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {selectedForm.form}
+                <div className="pb-4 border-b border-gray-100">
+                  <h1 className="text-2xl font-bold text-gray-800">
+                    {formatDrugName(selectedVariant || decodedDrugName)}
+                  </h1>
+                  {getGenericName(selectedVariant || decodedDrugName) && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Generic Name: {getGenericName(selectedVariant || decodedDrugName)}
+                    </p>
+                  )}
+                  {selectedForm && selectedStrength && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {selectedForm.form}
+                      </span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {selectedStrength.strength}
+                      </span>
+                      {selectedQuantity && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {selectedQuantity.quantity} {selectedQuantity.uom.toLowerCase()}
                         </span>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          {selectedStrength.strength}
-                        </span>
-                        {selectedQuantity && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            {selectedQuantity.quantity} {selectedQuantity.uom.toLowerCase()}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Drug options selectors */}
@@ -583,8 +574,8 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
                           const form = availableForms.find(f => f.form === e.target.value);
                           if (form) {
                             setSelectedForm(form);
-                            // Also update strengths and quantities
-                            // This would call a function like updateStrengthsForForm(medicationData, form);
+                            // Call update function
+                            updateStrengthsForForm(medicationData, form);
                           }
                         }}
                         className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
@@ -608,10 +599,10 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
                         value={selectedStrength?.strength || ''}
                         onChange={(e) => {
                           const strength = availableStrengths.find(s => s.strength === e.target.value);
-                          if (strength) {
+                          if (strength && selectedForm) {
                             setSelectedStrength(strength);
-                            // Also update quantities
-                            // This would call a function like updateQuantitiesForFormAndStrength(medicationData, selectedForm, strength);
+                            // Call update function
+                            updateQuantitiesForFormAndStrength(medicationData, selectedForm, strength);
                           }
                         }}
                         className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
@@ -654,11 +645,6 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
                 {/* Information about the drug */}
                 <div className="mt-6 bg-blue-50 rounded-lg p-4">
                   <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
                     <div className="ml-3">
                       <h3 className="text-sm font-medium text-blue-800">About this medication</h3>
                       <p className="mt-1 text-sm text-blue-700">
@@ -674,10 +660,7 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
             {/* Right column - Prices */}
             <div className="lg:col-span-2">
               <div className="bg-white p-6 rounded-xl shadow-md">
-                <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                <h2 className="text-xl font-bold text-gray-800 mb-6">
                   Lowest Prices Near You
                 </h2>
 
@@ -689,11 +672,6 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
                         {/* Pharmacy info */}
                         <div className="p-4 md:col-span-2">
                           <div className="flex items-start">
-                            <div className="bg-gray-100 rounded-lg p-2 mr-3">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                              </svg>
-                            </div>
                             <div>
                               <h3 className="font-semibold text-gray-800">{pharmacy.pharmacyName}</h3>
                               <p className="text-sm text-gray-500">{pharmacy.pharmacyAddress}</p>
@@ -717,10 +695,7 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
                             )}
                           </div>
                           {pharmacy.savings && pharmacy.regularPrice && (
-                            <div className="mt-1 flex items-center text-sm text-green-600">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                              </svg>
+                            <div className="mt-1 text-sm text-green-600">
                               Save ${pharmacy.savings.toFixed(2)} 
                               ({calculateDiscount(pharmacy.regularPrice, pharmacy.price || 0)}% off)
                             </div>
@@ -741,11 +716,6 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
                 {/* Information callout */}
                 <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                    </div>
                     <div className="ml-3">
                       <h3 className="text-sm font-medium text-yellow-800">How to use your coupon</h3>
                       <div className="mt-2 text-sm text-yellow-700">
