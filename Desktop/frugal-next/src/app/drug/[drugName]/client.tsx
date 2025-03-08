@@ -85,38 +85,39 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
   // Mock pharmacy prices for display
   const [pharmacyPrices, setPharmacyPrices] = useState<PharmacyPrice[]>([
     {
-      pharmacyName: 'Walgreens',
-      pharmacyAddress: '123 Main St, Anytown, USA',
+      pharmacyName: 'OneSource Specialty Medicine',
+      pharmacyAddress: '8989 Forest Ln Ste 138, Dallas, TX 75243',
       distance: 1.2,
-      price: 12.99,
-      regularPrice: 24.99,
-      savings: 12.00
+      price: 3.69,
     },
     {
-      pharmacyName: 'CVS Pharmacy',
-      pharmacyAddress: '456 Oak Ave, Anytown, USA',
+      pharmacyName: 'Sina Rx Pharmacy',
+      pharmacyAddress: '8050 Spring Valley Rd, Dallas, TX 75240',
       distance: 2.5,
-      price: 13.49,
-      regularPrice: 22.99,
-      savings: 9.50
+      price: 3.69,
     },
     {
-      pharmacyName: 'Walmart Pharmacy',
-      pharmacyAddress: '789 Elm St, Anytown, USA',
+      pharmacyName: 'Preston Village Pharmacy',
+      pharmacyAddress: '12700 Preston Rd Ste #115, Dallas, TX 75230',
       distance: 3.7,
-      price: 9.99,
-      regularPrice: 19.99,
-      savings: 10.00
+      price: 3.69,
     },
     {
-      pharmacyName: 'Rite Aid',
-      pharmacyAddress: '101 Pine Blvd, Anytown, USA',
+      pharmacyName: 'Preston Road Pharmacy',
+      pharmacyAddress: '6901 Preston Rd, Dallas, TX 75205',
       distance: 4.3,
-      price: 14.99,
-      regularPrice: 28.99,
-      savings: 14.00
+      price: 3.69,
     }
   ]);
+
+  // Active tab state
+  const [activeTab, setActiveTab] = useState<'prices' | 'favorites'>('prices');
+  
+  // Search radius state
+  const [searchRadius, setSearchRadius] = useState<string>('50 MILES');
+  
+  // Sort option state
+  const [sortOption, setSort] = useState<string>('PRICE');
 
   // Decode the drug name from the URL
   const decodedDrugName = decodeURIComponent(drugName);
@@ -302,7 +303,7 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
       case 'ELIXIR':
         return 'ML';
       case 'SUPP.RECT':
-        return 'SUPP.RECT';
+        return 'SUPPOSITORY';
       case 'DROPS':
       case 'DROPS SUSP':
         return 'ML';
@@ -481,10 +482,10 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="max-w-5xl mx-auto px-6 py-8">
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-16 h-16 border-4 border-gray-200 border-t-green-500 rounded-full animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-purple-600 rounded-full animate-spin"></div>
           <p className="mt-4 text-gray-600">Loading medication information...</p>
         </div>
       ) : error ? (
@@ -500,236 +501,248 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
         </div>
       ) : medicationData ? (
         <div>
-          {/* Breadcrumb navigation */}
-          <div className="flex items-center text-sm mb-6 text-gray-500">
-            <a href="/" className="hover:text-green-600 transition-colors">Home</a>
-            <span className="mx-2">&gt;</span>
-            <span className="text-gray-700 font-medium">
-              {formatDrugName(decodedDrugName)}
-            </span>
+          {/* Header */}
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-purple-700 uppercase mb-1">FIND YOUR SAVINGS</h3>
+            <div className="border-b-2 border-purple-600 w-48 mb-4"></div>
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+              {formatDrugName(decodedDrugName)} Coupon
+              {getGenericName(decodedDrugName) && (
+                <span className="text-gray-700"> (Generic {formatDrugName(getGenericName(decodedDrugName))})</span>
+              )}
+            </h1>
+            {getGenericName(decodedDrugName) && (
+              <p className="text-gray-600">
+                Pricing is displayed for <span className="font-semibold uppercase">{getGenericName(decodedDrugName)}</span>, which is a less expensive option of <span className="font-semibold uppercase">{decodedDrugName}</span>
+              </p>
+            )}
           </div>
 
-          {/* Main content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left column - Drug information */}
-            <div className="lg:col-span-1">
-              <div className="bg-white p-6 rounded-xl shadow-md">
-                <div className="pb-4 border-b border-gray-100">
-                  <h1 className="text-2xl font-bold text-gray-800">
-                    {formatDrugName(selectedVariant || decodedDrugName)}
-                  </h1>
-                  {getGenericName(selectedVariant || decodedDrugName) && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Generic Name: {getGenericName(selectedVariant || decodedDrugName)}
-                    </p>
-                  )}
-                  {selectedForm && selectedStrength && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {selectedForm.form}
-                      </span>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        {selectedStrength.strength}
-                      </span>
-                      {selectedQuantity && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          {selectedQuantity.quantity} {selectedQuantity.uom.toLowerCase()}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Drug options selectors */}
-                <div className="mt-6 space-y-4">
-                  {/* Medication variant */}
-                  {medicationData.alternateDrugs && medicationData.alternateDrugs.length > 1 && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Medication Type
-                      </label>
-                      <select
-                        value={selectedVariant}
-                        onChange={(e) => setSelectedVariant(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      >
-                        {medicationData.alternateDrugs.map((variant, idx) => (
-                          <option key={idx} value={variant.medName}>
-                            {variant.medName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Form */}
-                  {availableForms.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Form
-                      </label>
-                      <select
-                        value={selectedForm?.form || ''}
-                        onChange={(e) => {
-                          const form = availableForms.find(f => f.form === e.target.value);
-                          if (form) {
-                            setSelectedForm(form);
-                            // Call update function
-                            updateStrengthsForForm(medicationData, form);
-                          }
-                        }}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      >
-                        {availableForms.map((form, idx) => (
-                          <option key={idx} value={form.form}>
-                            {form.form}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Strength */}
-                  {availableStrengths.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Strength
-                      </label>
-                      <select
-                        value={selectedStrength?.strength || ''}
-                        onChange={(e) => {
-                          const strength = availableStrengths.find(s => s.strength === e.target.value);
-                          if (strength && selectedForm) {
-                            setSelectedStrength(strength);
-                            // Call update function
-                            updateQuantitiesForFormAndStrength(medicationData, selectedForm, strength);
-                          }
-                        }}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      >
-                        {availableStrengths.map((strength, idx) => (
-                          <option key={idx} value={strength.strength}>
-                            {strength.strength}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Quantity */}
-                  {availableQuantities.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Quantity
-                      </label>
-                      <select
-                        value={selectedQuantity ? selectedQuantity.quantity.toString() : ''}
-                        onChange={(e) => {
-                          const qty = availableQuantities.find(q => q.quantity.toString() === e.target.value);
-                          if (qty) {
-                            setSelectedQuantity(qty);
-                          }
-                        }}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                      >
-                        {availableQuantities.map((qty, idx) => (
-                          <option key={idx} value={qty.quantity.toString()}>
-                            {qty.quantity} {qty.uom}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Information about the drug */}
-                <div className="mt-6 bg-blue-50 rounded-lg p-4">
-                  <div className="flex items-start">
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">About this medication</h3>
-                      <p className="mt-1 text-sm text-blue-700">
-                        Prices may vary based on location, pharmacy, and insurance coverage. 
-                        Always consult with healthcare professionals before starting any medication.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right column - Prices */}
-            <div className="lg:col-span-2">
-              <div className="bg-white p-6 rounded-xl shadow-md">
-                <h2 className="text-xl font-bold text-gray-800 mb-6">
-                  Lowest Prices Near You
-                </h2>
-
-                {/* Pharmacy prices */}
-                <div className="space-y-4">
-                  {pharmacyPrices.map((pharmacy, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200">
-                      <div className="grid grid-cols-1 md:grid-cols-5 items-center gap-4">
-                        {/* Pharmacy info */}
-                        <div className="p-4 md:col-span-2">
-                          <div className="flex items-start">
-                            <div>
-                              <h3 className="font-semibold text-gray-800">{pharmacy.pharmacyName}</h3>
-                              <p className="text-sm text-gray-500">{pharmacy.pharmacyAddress}</p>
-                              {pharmacy.distance !== undefined && (
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {pharmacy.distance.toFixed(1)} miles away
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Price */}
-                        <div className="p-4 border-t md:border-t-0 md:border-l border-gray-200 md:col-span-2">
-                          <div className="flex items-baseline">
-                            <span className="text-2xl font-bold text-gray-800">${pharmacy.price?.toFixed(2)}</span>
-                            {pharmacy.regularPrice && (
-                              <span className="ml-2 text-sm line-through text-gray-500">
-                                ${pharmacy.regularPrice.toFixed(2)}
-                              </span>
-                            )}
-                          </div>
-                          {pharmacy.savings && pharmacy.regularPrice && (
-                            <div className="mt-1 text-sm text-green-600">
-                              Save ${pharmacy.savings.toFixed(2)} 
-                              ({calculateDiscount(pharmacy.regularPrice, pharmacy.price || 0)}% off)
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Get coupon button */}
-                        <div className="p-4 bg-gray-50 md:rounded-none md:col-span-1 text-center">
-                          <button className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-150 shadow-sm">
-                            Get Coupon
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+          {/* Medication options selectors */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            {/* Brand selector */}
+            <div className="relative">
+              <label className="block text-xs text-gray-500 mb-1 uppercase">Brand</label>
+              <div className="relative">
+                <select
+                  value={selectedVariant}
+                  onChange={(e) => setSelectedVariant(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md appearance-none pr-8 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  {medicationData.alternateDrugs?.map((variant, idx) => (
+                    <option key={idx} value={variant.medName}>
+                      {variant.medName} {variant.bgFlag === 'G' ? '(generic)' : ''}
+                    </option>
                   ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                  <span className="text-gray-500">▼</span>
                 </div>
+              </div>
+            </div>
 
-                {/* Information callout */}
-                <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div className="flex">
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-yellow-800">How to use your coupon</h3>
-                      <div className="mt-2 text-sm text-yellow-700">
-                        <ol className="list-decimal pl-5 space-y-1">
-                          <li>Click the "Get Coupon" button for your preferred pharmacy</li>
-                          <li>Present the coupon at the pharmacy when picking up your prescription</li>
-                          <li>Pay the discounted price shown on the coupon</li>
-                        </ol>
-                      </div>
-                    </div>
+            {/* Form selector */}
+            <div className="relative">
+              <label className="block text-xs text-gray-500 mb-1 uppercase">Form</label>
+              <div className="relative">
+                <select
+                  value={selectedForm?.form || ''}
+                  onChange={(e) => {
+                    const form = availableForms.find(f => f.form === e.target.value);
+                    if (form) {
+                      setSelectedForm(form);
+                      updateStrengthsForForm(medicationData, form);
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md appearance-none pr-8 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  {availableForms.map((form, idx) => (
+                    <option key={idx} value={form.form}>
+                      {form.form}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                  <span className="text-gray-500">▼</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Strength selector */}
+            <div className="relative">
+              <label className="block text-xs text-gray-500 mb-1 uppercase">Dosage</label>
+              <div className="relative">
+                <select
+                  value={selectedStrength?.strength || ''}
+                  onChange={(e) => {
+                    const strength = availableStrengths.find(s => s.strength === e.target.value);
+                    if (strength && selectedForm) {
+                      setSelectedStrength(strength);
+                      updateQuantitiesForFormAndStrength(medicationData, selectedForm, strength);
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md appearance-none pr-8 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  {availableStrengths.map((strength, idx) => (
+                    <option key={idx} value={strength.strength}>
+                      {strength.strength}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                  <span className="text-gray-500">▼</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quantity selector */}
+            <div className="relative">
+              <label className="block text-xs text-gray-500 mb-1 uppercase">Quantity</label>
+              <div className="relative">
+                <select
+                  value={selectedQuantity ? selectedQuantity.quantity.toString() : ''}
+                  onChange={(e) => {
+                    const qty = availableQuantities.find(q => q.quantity.toString() === e.target.value);
+                    if (qty) {
+                      setSelectedQuantity(qty);
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md appearance-none pr-8 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  {availableQuantities.map((qty, idx) => (
+                    <option key={idx} value={qty.quantity.toString()}>
+                      {qty.quantity} {qty.uom}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                  <span className="text-gray-500">▼</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-gray-200 my-6"></div>
+
+          {/* Location button */}
+          <div className="mb-6">
+            <button className="bg-purple-700 text-white px-4 py-2 rounded-md hover:bg-purple-800 transition-colors">
+              SET LOCATION
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="border-b border-gray-200 mb-6">
+            <div className="flex space-x-8">
+              <button 
+                className={`pb-2 font-medium ${activeTab === 'prices' ? 'text-purple-700 border-b-2 border-purple-700' : 'text-gray-500 hover:text-gray-700'}`}
+                onClick={() => setActiveTab('prices')}
+              >
+                PRICES
+              </button>
+              <button 
+                className={`pb-2 font-medium ${activeTab === 'favorites' ? 'text-purple-700 border-b-2 border-purple-700' : 'text-gray-500 hover:text-gray-700'}`}
+                onClick={() => setActiveTab('favorites')}
+              >
+                FAVORITE PHARMACY
+              </button>
+            </div>
+          </div>
+
+          {/* Results header */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="text-gray-700 font-medium">RESULTS FOR DRUG</div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center">
+                <span className="text-gray-700 mr-2">SORT:</span>
+                <div className="relative">
+                  <select
+                    value={sortOption}
+                    onChange={(e) => setSort(e.target.value)}
+                    className="appearance-none bg-white border border-gray-300 rounded-md py-1 pl-3 pr-8 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="PRICE">PRICE</option>
+                    <option value="DISTANCE">DISTANCE</option>
+                    <option value="NAME">NAME</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                    <span className="text-purple-700">▼</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center">
+                <span className="text-gray-700 mr-2">SEARCH RADIUS:</span>
+                <div className="relative">
+                  <select
+                    value={searchRadius}
+                    onChange={(e) => setSearchRadius(e.target.value)}
+                    className="appearance-none bg-white border border-gray-300 rounded-md py-1 pl-3 pr-8 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="5 MILES">5 MILES</option>
+                    <option value="10 MILES">10 MILES</option>
+                    <option value="25 MILES">25 MILES</option>
+                    <option value="50 MILES">50 MILES</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                    <span className="text-purple-700">▼</span>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Pharmacy list */}
+          <div className="space-y-4 mb-8">
+            {pharmacyPrices.map((pharmacy, index) => (
+              <div key={index} className="border border-gray-200 rounded-md overflow-hidden">
+                <div className="flex flex-col md:flex-row">
+                  {/* Pharmacy info */}
+                  <div className="p-4 flex-grow">
+                    <div className="flex items-start">
+                      <div className="mr-3 text-gray-400">
+                        {index + 6}.
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-800 uppercase">{pharmacy.pharmacyName}</h3>
+                        <p className="text-sm text-gray-600 mt-1">{pharmacy.pharmacyAddress}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {pharmacy.distance !== undefined && (
+                            <span>9am to 5pm</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div className="p-4 bg-gray-50 flex items-center justify-between md:w-64">
+                    <div className="text-xl font-bold text-gray-800">${pharmacy.price?.toFixed(2)}</div>
+                    <button className="bg-white border border-purple-700 text-purple-700 px-3 py-1 rounded text-sm hover:bg-purple-50 transition-colors">
+                      GET FREE COUPON
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Map view option */}
+          <div className="bg-gray-50 p-6 rounded-lg text-center">
+            <div className="mb-4">Want to see these pharmacies on a map?</div>
+            <button className="bg-purple-700 text-white px-6 py-2 rounded-md uppercase font-medium hover:bg-purple-800 transition-colors">
+              Open Map View
+            </button>
+          </div>
+
+          {/* Drug information link */}
+          <div className="mt-8">
+            <a href="#" className="text-purple-700 font-medium flex items-center">
+              ACETAMINOPHEN DRUG INFORMATION
+              <span className="ml-1">›</span>
+            </a>
           </div>
         </div>
       ) : null}
