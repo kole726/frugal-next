@@ -526,7 +526,14 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
               <div className="relative">
                 <select
                   value={selectedVariant}
-                  onChange={(e) => setSelectedVariant(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedVariant(e.target.value);
+                    // Find the variant object and update forms
+                    const variant = medicationData.alternateDrugs?.find(v => v.medName === e.target.value);
+                    if (variant && medicationData) {
+                      filterFormsForVariant(medicationData, variant);
+                    }
+                  }}
                   className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md appearance-none pr-8 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
                 >
                   {medicationData.alternateDrugs?.map((variant, idx) => (
