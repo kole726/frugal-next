@@ -489,9 +489,6 @@ export default function DrugPageClient({ drugName }: DrugPageClientProps) {
         </div>
       ) : error ? (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
           <h2 className="text-xl font-bold text-red-700 mb-2">Error Loading Data</h2>
           <p className="text-red-600">{error}</p>
           <button 
